@@ -1,0 +1,52 @@
+name: Look for security.txt files
+on:
+    schedule:
+        - cron: '0 3 * * *'
+
+jobs:
+    Alexa_top_50:
+        name: Check the Alexa top 50 sites
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v2
+
+            - name: Run the Check
+              run: |
+                set +e
+                echo Run number ${GITHUB_RUN_NUMBER}
+                count200=0
+                count403=0
+                count404=0
+                unaccounted=0
+                count000=0
+                while read site; do
+                    STATUS=`curl -s -X GET http://${site}/.well-known/security.txt -o /dev/null -w "%{http_code}" -L`
+                    echo $STATUS - $site
+
+                    case "$STATUS" in
+
+                      000) count000=$(($count000 + 1))
+                      ;;
+
+                      200) count200=$(($count200 + 1))
+                      ;;
+
+                      403) count403=$(($count403 + 1))
+                      ;;
+
+                      404) count404=$(($count404 + 1))
+                      ;;
+
+                      *) unaccounted=$(($unaccounted + 1))
+                      ;;
+
+                    esac
+
+                done < data/data.txt
+
+                echo     Found: $count200
+                echo Not found: $count404
+                echo Forbidden: $count403
+                echo    Errors: $count000
+                echo    Other: $unaccounted
